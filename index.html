@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cost of Trust - Alexey Nazariev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html, body {
+        width: 100%;
+        height: 100%;
+        background-color: #000;
+        color: #fff;
+        font-family: 'Share Tech Mono', monospace, 'Courier New', monospace;
+        overflow: hidden;
+      }
+      #unity-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        overflow: hidden;
+        cursor: none !important;
+      }
+      #unity-canvas {
+        width: 100%;
+        height: 100%;
+        max-width: 100vw;
+        max-height: 100vh;
+        aspect-ratio: 16 / 9;
+        object-fit: contain;
+        background: #000;
+        display: block;
+        cursor: none !important;
+      }
+      #loading-cover {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        transition: opacity .4s ease;
+        padding: 20px;
+        text-align: center;
+        user-select: none;
+      }
+      .terminal-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        max-width: 650px;
+      }
+      .author-title {
+        font-size: 28px;
+        letter-spacing: 6px;
+        color: #fff;
+        text-shadow: 0 0 10px rgba(255, 255, 255, .45);
+        margin-bottom: 12px;
+        text-transform: uppercase;
+      }
+      .divider {
+        color: #333;
+        font-size: 14px;
+        margin-bottom: 20px;
+        overflow: hidden;
+        white-space: nowrap;
+        letter-spacing: 1px;
+      }
+      .status-text {
+        font-size: 15px;
+        color: #888;
+        letter-spacing: 3px;
+        margin-bottom: 22px;
+      }
+      .terminal-progress-bar {
+        font-size: 16px;
+        color: #fff;
+        text-shadow: 0 0 6px rgba(255, 255, 255, .35);
+        letter-spacing: 2px;
+        word-break: break-all;
+      }
+      .cursor-blink {
+        display: inline-block;
+        animation: blink 1s infinite;
+      }
+      @keyframes blink {
+        0%, 49% { opacity: 1; }
+        50%, 100% { opacity: 0; }
+      }
+      #unity-warning {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 200;
+        width: min(80%, 760px);
+        display: none;
+      }
+      .warning-message {
+        padding: 10px;
+        margin-bottom: 6px;
+        font-family: monospace;
+        white-space: pre-wrap;
+      }
+      .warning-error {
+        background: #b00020;
+        color: #fff;
+      }
+      .warning-warning {
+        background: #ffd400;
+        color: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="unity-container">
+      <canvas id="unity-canvas" width="1280" height="720" tabindex="-1"></canvas>
+      <div id="loading-cover">
+        <div class="terminal-box">
+          <div class="author-title">Alexey Nazariev</div>
+          <div class="divider">==============================================</div>
+          <div class="status-text">LOADING ASSETS<span class="cursor-blink">_</span></div>
+          <div id="progress-text" class="terminal-progress-bar">[....................................]   0%</div>
+        </div>
+      </div>
+      <div id="unity-warning" aria-live="polite"></div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var canvas = document.getElementById("unity-canvas");
+        var loadingCover = document.getElementById("loading-cover");
+        var progressText = document.getElementById("progress-text");
+        var warningBanner = document.getElementById("unity-warning");
+
+        function unityShowBanner(message, type) {
+          var item = document.createElement("div");
+          item.className = "warning-message " +
+            (type === "error" ? "warning-error" : "warning-warning");
+          item.textContent = message;
+          warningBanner.appendChild(item);
+          warningBanner.style.display = "block";
+
+          if (type !== "error") {
+            window.setTimeout(function () {
+              if (item.parentNode === warningBanner) {
+                warningBanner.removeChild(item);
+              }
+              if (!warningBanner.children.length) {
+                warningBanner.style.display = "none";
+              }
+            }, 5000);
+          }
+        }
+
+        var buildUrl = "Build";
+        var loaderUrl = buildUrl + "/Web11.loader.js";
+        var config = {
+          arguments: [],
+          dataUrl: buildUrl + "/Web11.data",
+          frameworkUrl: buildUrl + "/Web11.framework.js",
+          codeUrl: buildUrl + "/Web11.wasm",
+          streamingAssetsUrl: "StreamingAssets",
+          companyName: "AlexeyNazariev",
+          productName: "Cost of Trust",
+          productVersion: "0.1.0",
+          showBanner: unityShowBanner,
+          matchWebGLToCanvasSize: false
+        };
+
+        // Keep the game's intended render buffer and avoid high-DPI GPU overload.
+        canvas.width = 1280;
+        canvas.height = 720;
+
+        var currentProgress = 0;
+        var targetProgress = 0;
+        var isLoaded = false;
+
+        function updateTerminalProgress(value) {
+          var totalBars = 36;
+          var percent = Math.min(100, Math.max(0, Math.round(value * 100)));
+          var filled = Math.min(totalBars, Math.floor(percent / 100 * totalBars));
+          var empty = totalBars - filled;
+          var paddedPercent = (percent < 10 ? "  " : percent < 100 ? " " : "") + percent + "%";
+          progressText.textContent =
+            "[" + "|".repeat(filled) + ".".repeat(empty) + "] " + paddedPercent;
+        }
+
+        updateTerminalProgress(0);
+
+        var progressInterval = window.setInterval(function () {
+          if (!isLoaded && targetProgress < 0.90) {
+            targetProgress += 0.015;
+          }
+          if (currentProgress < targetProgress) {
+            currentProgress = Math.min(targetProgress, currentProgress + 0.03);
+            updateTerminalProgress(currentProgress);
+          }
+        }, 50);
+
+        var script = document.createElement("script");
+        script.src = loaderUrl;
+        script.onload = function () {
+          if (typeof window.createUnityInstance !== "function") {
+            clearInterval(progressInterval);
+            unityShowBanner("Unity loader loaded, but createUnityInstance is missing.", "error");
+            return;
+          }
+
+          window.createUnityInstance(canvas, config, function (progress) {
+            if (typeof progress === "number" && isFinite(progress)) {
+              targetProgress = Math.max(targetProgress, progress);
+            }
+          }).then(function () {
+            isLoaded = true;
+            targetProgress = 1;
+            currentProgress = 1;
+            updateTerminalProgress(1);
+            clearInterval(progressInterval);
+            window.setTimeout(function () {
+              loadingCover.style.opacity = "0";
+              window.setTimeout(function () {
+                loadingCover.style.display = "none";
+                canvas.focus();
+              }, 350);
+            }, 200);
+          }).catch(function (error) {
+            clearInterval(progressInterval);
+            var message = error && error.message ? error.message : String(error);
+            unityShowBanner("Error loading Unity:\n" + message, "error");
+            console.error("Error loading Unity:", error);
+          });
+        };
+        script.onerror = function () {
+          clearInterval(progressInterval);
+          unityShowBanner("Unable to load Build/Web11.loader.js. Check the Build folder and hosting paths.", "error");
+        };
+        document.body.appendChild(script);
+
+        function forceCursorHidden() {
+          canvas.style.setProperty("cursor", "none", "important");
+        }
+        canvas.addEventListener("mouseenter", forceCursorHidden);
+        canvas.addEventListener("mousemove", forceCursorHidden);
+        canvas.addEventListener("mousedown", forceCursorHidden);
+      }());
+    </script>
+  </body>
+</html>

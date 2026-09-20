@@ -1,0 +1,78 @@
+{
+  "maxPartBytes": 4500000,
+  "files": {
+    "Web11.wasm": {
+      "sourceBytes": 44512081,
+      "parts": [
+        {
+          "name": "Web11.wasm.part-001",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-002",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-003",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-004",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-005",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-006",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-007",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-008",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-009",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.wasm.part-010",
+          "bytes": 4012081
+        }
+      ]
+    },
+    "Web11.data": {
+      "sourceBytes": 20138858,
+      "parts": [
+        {
+          "name": "Web11.data.part-001",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.data.part-002",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.data.part-003",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.data.part-004",
+          "bytes": 4500000
+        },
+        {
+          "name": "Web11.data.part-005",
+          "bytes": 2138858
+        }
+      ]
+    }
+  },
+  "loaderBytes": 29250,
+  "frameworkBytes": 329950,
+  "indexBytes": 8812
+}
